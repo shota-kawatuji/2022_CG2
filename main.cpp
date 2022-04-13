@@ -132,13 +132,6 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		}
 	}
 
-
-
-
-
-
-
-
 	// コマンドアロケータを生成
 	result = device->CreateCommandAllocator(
 		D3D12_COMMAND_LIST_TYPE_DIRECT,
@@ -172,9 +165,6 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	result = dxgiFactory->CreateSwapChainForHwnd(
 		commandQeueue, hwnd, &swapChainDece, nullptr, nullptr,
 		(IDXGISwapChain1**)&swapChain);
-
-
-	// ここでエラー吐いてる
 	assert(SUCCEEDED(result));
 
 
