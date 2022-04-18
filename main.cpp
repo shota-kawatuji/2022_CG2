@@ -159,7 +159,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	swapChainDece.SampleDesc.Count = 1;// マルチサンプルしない
 	swapChainDece.BufferUsage = DXGI_USAGE_BACK_BUFFER;// バックバッファ用
 	swapChainDece.BufferCount = 2;// バッファ数を２つに設定
-	swapChainDece.SwapEffect = DXGI_SWAP_EFFECT_DISCARD;// フリップ後は破棄
+	swapChainDece.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;// フリップ後は破棄
 	swapChainDece.Flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH;
 	// スワップチェーンの生成
 	result = dxgiFactory->CreateSwapChainForHwnd(
