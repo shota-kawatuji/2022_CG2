@@ -73,9 +73,9 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	ID3D12Device* device = nullptr;
 	IDXGIFactory7* dxgiFactory = nullptr;
 	IDXGISwapChain4* swapChain = nullptr;
-	ID3D12CommandAllocator* cmdAllocator = nullptr;
-	ID3D12GraphicsCommandList* commendList = nullptr;
-	ID3D12CommandQueue* commandQeueue = nullptr;
+	ID3D12CommandAllocator* commandAllocator = nullptr;
+	ID3D12GraphicsCommandList* commandList = nullptr;
+	ID3D12CommandQueue* commandQueue = nullptr;
 	ID3D12DescriptorHeap* rtvHeap = nullptr;
 
 	// DXGIファクトリーの生成
@@ -99,12 +99,12 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
 	// 妥当なアダプタを選別する
 	for (size_t i = 0; i < adapters.size(); i++) {
-		DXGI_ADAPTER_DESC3 adapterDescc;
+		DXGI_ADAPTER_DESC3 adapterDesc;
 		// アダプターの情報を取得する
-		adapters[i]->GetDesc3(&adapterDescc);
+		adapters[i]->GetDesc3(&adapterDesc);
 
 		// ソフトウェアデバイスを回避
-		if (!(adapterDescc.Flags & DXGI_ADAPTER_FLAG3_SOFTWARE)) {
+		if (!(adapterDesc.Flags & DXGI_ADAPTER_FLAG3_SOFTWARE)) {
 			// デバイスを採用してループを抜ける
 			tmpAdapter = adapters[i];
 			break;
@@ -135,50 +135,50 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	// コマンドアロケータを生成
 	result = device->CreateCommandAllocator(
 		D3D12_COMMAND_LIST_TYPE_DIRECT,
-		IID_PPV_ARGS(&cmdAllocator));
+		IID_PPV_ARGS(&commandAllocator));
 	assert(SUCCEEDED(result));
 
 	// コマンドリストを生成
 	result = device->CreateCommandList(0,
 		D3D12_COMMAND_LIST_TYPE_DIRECT,
-		cmdAllocator, nullptr,
-		IID_PPV_ARGS(&commendList));
+		commandAllocator, nullptr,
+		IID_PPV_ARGS(&commandList));
 	assert(SUCCEEDED(result));
 
 	// コマンドキューの設定
 	D3D12_COMMAND_QUEUE_DESC commandQueueDesc{};
 	// コマンドキューを生成
-	result = device->CreateCommandQueue(&commandQueueDesc, IID_PPV_ARGS(&commandQeueue));
+	result = device->CreateCommandQueue(&commandQueueDesc, IID_PPV_ARGS(&commandQueue));
 	assert(SUCCEEDED(result));
 
 	// スワップチェーンの設定
-	DXGI_SWAP_CHAIN_DESC1 swapChainDece{};
-	swapChainDece.Width = 1280;
-	swapChainDece.Height = 720;
-	swapChainDece.Format = DXGI_FORMAT_R8G8B8A8_UNORM;// 色情報の書式
-	swapChainDece.SampleDesc.Count = 1;// マルチサンプルしない
-	swapChainDece.BufferUsage = DXGI_USAGE_BACK_BUFFER;// バックバッファ用
-	swapChainDece.BufferCount = 2;// バッファ数を２つに設定
-	swapChainDece.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;// フリップ後は破棄
-	swapChainDece.Flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH;
+	DXGI_SWAP_CHAIN_DESC1 swapChainDesc{};
+	swapChainDesc.Width = 1280;
+	swapChainDesc.Height = 720;
+	swapChainDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;// 色情報の書式
+	swapChainDesc.SampleDesc.Count = 1;// マルチサンプルしない
+	swapChainDesc.BufferUsage = DXGI_USAGE_BACK_BUFFER;// バックバッファ用
+	swapChainDesc.BufferCount = 2;// バッファ数を２つに設定
+	swapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;// フリップ後は破棄
+	swapChainDesc.Flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH;
 	// スワップチェーンの生成
 	result = dxgiFactory->CreateSwapChainForHwnd(
-		commandQeueue, hwnd, &swapChainDece, nullptr, nullptr,
+		commandQueue, hwnd, &swapChainDesc, nullptr, nullptr,
 		(IDXGISwapChain1**)&swapChain);
 	assert(SUCCEEDED(result));
 
 
 	// デスクリプタヒープの設定
-	D3D12_DESCRIPTOR_HEAP_DESC rtvHreapDece{};
-	rtvHreapDece.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;// レンダーターゲットビュー
-	rtvHreapDece.NumDescriptors = swapChainDece.BufferCount;// 裏表の２つ
+	D3D12_DESCRIPTOR_HEAP_DESC rtvHreapDesc{};
+	rtvHreapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;// レンダーターゲットビュー
+	rtvHreapDesc.NumDescriptors = swapChainDesc.BufferCount;// 裏表の２つ
 
 	// デスクリプタヒープの生成
-	device->CreateDescriptorHeap(&rtvHreapDece, IID_PPV_ARGS(&rtvHeap));
+	device->CreateDescriptorHeap(&rtvHreapDesc, IID_PPV_ARGS(&rtvHeap));
 
 	// バックバッファ
 	std::vector<ID3D12Resource*> backBuffers;
-	backBuffers.resize(swapChainDece.BufferCount);
+	backBuffers.resize(swapChainDesc.BufferCount);
 
 	// スワップチェーンの全てのバッファについて処理する
 	for (size_t i = 0; i < backBuffers.size(); i++) {
@@ -187,7 +187,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		// デスクリプタヒープのハンドルを取得
 		D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle = rtvHeap->GetCPUDescriptorHandleForHeapStart();
 		// 裏か表かでアドレスがずれる
-		rtvHandle.ptr += 1 * device->GetDescriptorHandleIncrementSize(rtvHreapDece.Type);
+		rtvHandle.ptr += 1 * device->GetDescriptorHandleIncrementSize(rtvHreapDesc.Type);
 		// レンダーターゲットビューの設定
 		D3D12_RENDER_TARGET_VIEW_DESC rtvDece{};
 		// シェーダーの計算結果をSRGBに変換して書き込む
@@ -231,9 +231,64 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 			break;
 		}
 		// DirectX毎フレーム処理 ここから
+		// バックバッファの番号を取得（2つなので0番か1番）
+		UINT bbIndex = swapChain->GetCurrentBackBufferIndex();
+
+		// １．リソースバリアで書き込み可能に変更
+		D3D12_RESOURCE_BARRIER barrierDesc{};
+		barrierDesc.Transition.pResource = backBuffers[bbIndex]; // バックバッファを指定
+		barrierDesc.Transition.StateBefore = D3D12_RESOURCE_STATE_PRESENT; // 表示状態から
+		barrierDesc.Transition.StateAfter = D3D12_RESOURCE_STATE_RENDER_TARGET; // 描画状態へ
+		commandList->ResourceBarrier(1, &barrierDesc);
+
+		// ２．描画先の変更
+		// レンダーターゲットビューのハンドルを取得
+		D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle = rtvHeap->GetCPUDescriptorHandleForHeapStart();
+		rtvHandle.ptr += bbIndex * device->GetDescriptorHandleIncrementSize(rtvHreapDesc.Type);
+		commandList->OMSetRenderTargets(1, &rtvHandle, false, nullptr);
+
+		// ３．画面クリア
+		FLOAT clearColor[] = { 0.1f,0.25f,0.5f,0.0f }; // 青っぽい色
+		commandList->ClearRenderTargetView(rtvHandle, clearColor, 0, nullptr);
+
+		// ４，描画コマンドここから
+
+		// ４，描画コマンドここまで
+
+		// ５，リソースバリアを戻す
+		barrierDesc.Transition.StateBefore = D3D12_RESOURCE_STATE_RENDER_TARGET; // 描画状態から
+		barrierDesc.Transition.StateAfter = D3D12_RESOURCE_STATE_PRESENT; // 表示状態へ
+		commandList->ResourceBarrier(1, &barrierDesc);
+
+		// 命令のクローズ
+		result = commandList->Close();
+		assert(SUCCEEDED(result));
+		// コマンドリストの実行
+		ID3D12CommandList* commandLists[] = { commandList };
+		commandQueue->ExecuteCommandLists(1, commandLists);
+
+		// 画面に表示するバッファをフリップ（裏表の入れ替え）
+		result = swapChain->Present(1, 0);
+		// ↓こいつがエラー吐く、意味分からん
+		// assert(SUCCEEDED(result));
+
+		// コマンドの実行完了を待つ
+		commandQueue->Signal(fence, ++fenceVal);
+		if (fence->GetCompletedValue() != fenceVal) {
+			HANDLE event = CreateEvent(nullptr, false, false, nullptr);
+			fence->SetEventOnCompletion(fenceVal, event);
+			WaitForSingleObject(event, INFINITE);
+			CloseHandle(event);
+		}
+
+		// キューをクリア
+		result = commandAllocator->Reset();
+		assert(SUCCEEDED(result));
+		// 再びコマンドリストを貯める準備
+		result = commandList->Reset(commandAllocator, nullptr);
+		assert(SUCCEEDED(result));
 
 		// DirectX毎フレーム処理 ここまで
-
 
 	}
 
