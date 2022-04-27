@@ -25,8 +25,8 @@ LRESULT WindowProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam) {
 // Windowsアプリでのエントリーポイント(main関数)
 int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
-	// コンソールへの文字出力
-	OutputDebugStringA("Hello,DirectX!!\n");
+#pragma region WindowsAPI初期化処理
+
 
 	// 設定
 	// ウィンドウサイズ
@@ -66,7 +66,18 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	ShowWindow(hwnd, SW_SHOW);
 
 	MSG msg{}; // メッセージ
+#pragma endregion
 
+#pragma region DirectX初期化処理
+
+#ifdef _DEBUG
+	// デバックレイヤーをオンに
+	ID3D12Debug* debugController;
+	if (SUCCEEDED(D3D12GetDebugInterface(IID_PPV_ARGS(&debugController)))) {
+		debugController->EnableDebugLayer();
+	}
+#endif // _DEBUG
+	
 	// DirectX初期化処理 ここから
 
 	HRESULT result;
@@ -187,14 +198,14 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		// デスクリプタヒープのハンドルを取得
 		D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle = rtvHeap->GetCPUDescriptorHandleForHeapStart();
 		// 裏か表かでアドレスがずれる
-		rtvHandle.ptr += 1 * device->GetDescriptorHandleIncrementSize(rtvHreapDesc.Type);
+		rtvHandle.ptr += i * device->GetDescriptorHandleIncrementSize(rtvHreapDesc.Type);
 		// レンダーターゲットビューの設定
-		D3D12_RENDER_TARGET_VIEW_DESC rtvDece{};
+		D3D12_RENDER_TARGET_VIEW_DESC rtvDesc{};
 		// シェーダーの計算結果をSRGBに変換して書き込む
-		rtvDece.Format = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
-		rtvDece.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
+		rtvDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
+		rtvDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
 		// レンダーターゲットビューの生成
-		device->CreateRenderTargetView(backBuffers[i], &rtvDece, rtvHandle);
+		device->CreateRenderTargetView(backBuffers[i], &rtvDesc, rtvHandle);
 	}
 
 	// フェンスの生成
@@ -203,16 +214,10 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
 	result = device->CreateFence(fenceVal, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&fence));
 
-#ifdef _DEBUG
-	// デバックレイヤーをオンに
-	ID3D12Debug* debugController;
-	if (SUCCEEDED(D3D12GetDebugInterface(IID_PPV_ARGS(&debugController)))) {
-		debugController->EnableDebugLayer();
-	}
-#endif // _DEBUG
 
 
 	// DirectX初期化処理 ここまで
+#pragma endregion
 
 
 	// ゲームループ
@@ -231,33 +236,33 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 			break;
 		}
 		// DirectX毎フレーム処理 ここから
-		// バックバッファの番号を取得（2つなので0番か1番）
+		// バックバッファの番号を取得
 		UINT bbIndex = swapChain->GetCurrentBackBufferIndex();
 
-		// １．リソースバリアで書き込み可能に変更
+		// １.リソースバリアで書き込み可能に変更
 		D3D12_RESOURCE_BARRIER barrierDesc{};
 		barrierDesc.Transition.pResource = backBuffers[bbIndex]; // バックバッファを指定
-		barrierDesc.Transition.StateBefore = D3D12_RESOURCE_STATE_PRESENT; // 表示状態から
+		barrierDesc.Transition.StateBefore = D3D12_RESOURCE_STATE_PRESENT;// 表示状態から
 		barrierDesc.Transition.StateAfter = D3D12_RESOURCE_STATE_RENDER_TARGET; // 描画状態へ
 		commandList->ResourceBarrier(1, &barrierDesc);
 
-		// ２．描画先の変更
+		// ２.描画先の変更
 		// レンダーターゲットビューのハンドルを取得
 		D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle = rtvHeap->GetCPUDescriptorHandleForHeapStart();
 		rtvHandle.ptr += bbIndex * device->GetDescriptorHandleIncrementSize(rtvHreapDesc.Type);
 		commandList->OMSetRenderTargets(1, &rtvHandle, false, nullptr);
 
-		// ３．画面クリア
-		FLOAT clearColor[] = { 0.1f,0.25f,0.5f,0.0f }; // 青っぽい色
+		// ３.画面クリア
+		FLOAT clearColor[] = { 0.1f,0.25f,0.5f,0.0f };
 		commandList->ClearRenderTargetView(rtvHandle, clearColor, 0, nullptr);
 
-		// ４，描画コマンドここから
+		// ４.描画コマンドここから
+		
+		// ４.描画コマンドここまで
 
-		// ４，描画コマンドここまで
-
-		// ５，リソースバリアを戻す
-		barrierDesc.Transition.StateBefore = D3D12_RESOURCE_STATE_RENDER_TARGET; // 描画状態から
-		barrierDesc.Transition.StateAfter = D3D12_RESOURCE_STATE_PRESENT; // 表示状態へ
+		// ５.リソースバリアを戻す
+		barrierDesc.Transition.StateBefore = D3D12_RESOURCE_STATE_RENDER_TARGET;
+		barrierDesc.Transition.StateAfter = D3D12_RESOURCE_STATE_PRESENT;
 		commandList->ResourceBarrier(1, &barrierDesc);
 
 		// 命令のクローズ
@@ -269,8 +274,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
 		// 画面に表示するバッファをフリップ（裏表の入れ替え）
 		result = swapChain->Present(1, 0);
-		// ↓こいつがエラー吐く、意味分からん
-		// assert(SUCCEEDED(result));
+		assert(SUCCEEDED(result));
 
 		// コマンドの実行完了を待つ
 		commandQueue->Signal(fence, ++fenceVal);
