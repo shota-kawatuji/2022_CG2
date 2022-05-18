@@ -258,6 +258,9 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		{-0.5f,-0.5f,0.0f}, // 左下
 		{-0.5f,+0.5f,0.0f}, // 左上
 		{+0.5f,-0.5f,0.0f}, // 右下
+		{+0.5f,-0.5f,0.0f}, // 右下
+		{-0.5f,+0.5f,0.0f}, // 左上
+		{+0.5f,+0.5f,0.0f}, // 右上
 	};
 	// 頂点データ全体のサイズ = 頂点データの一つ分のサイズ * 頂点データの要素数
 	UINT sizeVB = static_cast<UINT>(sizeof(XMFLOAT3) * _countof(vertices));
@@ -317,7 +320,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	assert(SUCCEEDED(result));
 
 	// 値を書き込むと自動的に転送される
-	constMapMaterial->color = XMFLOAT4(0, 1, 0, 1);
+	constMapMaterial->color = XMFLOAT4(1, 1, 1, 1);
 
 
 	// GPU上のバッファに対応した仮想メモリ(メインメモリ)を取得
@@ -418,7 +421,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	// ラスタライザの設定
 	pipelineDesc.RasterizerState.CullMode = D3D12_CULL_MODE_NONE; // カリングしない
 	pipelineDesc.RasterizerState.FillMode = D3D12_FILL_MODE_SOLID; // ポリゴン内塗りつぶし
-	// pipelineDesc.RasterizerState.FillMode = D3D12_FILL_MODE_WIREFRAME; // ワイヤーフレーム
+	//pipelineDesc.RasterizerState.FillMode = D3D12_FILL_MODE_WIREFRAME; // ワイヤーフレーム
 	pipelineDesc.RasterizerState.DepthClipEnable = true; // 深度クリッピングを有効に
 
 	//// ブレンドステート
@@ -551,7 +554,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		// ４.描画コマンドここから
 		// ビューポート設定コマンド
 		D3D12_VIEWPORT viewport{};
-		viewport.Width = window_width / 3;
+		viewport.Width = window_width;
 		viewport.Height = window_height;
 		viewport.TopLeftX = 10;
 		viewport.TopLeftY = 10;
@@ -562,7 +565,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
 		// シザー矩形
 		D3D12_RECT scissorRect{};
-		scissorRect.left = 100;									// 切り抜き座標左
+		scissorRect.left = 0;									// 切り抜き座標左
 		scissorRect.right = scissorRect.left + window_width;	// 切り抜き座標右
 		scissorRect.top = 0;									// 切り抜き座標上
 		scissorRect.bottom = scissorRect.top + window_height;	// 切り抜き座標下
@@ -574,7 +577,11 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		commandList->SetGraphicsRootSignature(rootSignature);
 
 		// プリミティブ形状の設定コマンド
-		commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST); // 三角形リスト
+		//commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_POINTLIST); // 点のリスト
+		//commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_LINELIST); // 線のリスト
+		//commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_LINESTRIP); // 線のストリップ
+		//commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST); // 三角形のリスト
+		commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP); // 三角形のストリップ
 
 		// 頂点バッファビューの設定コマンド
 		commandList->IASetVertexBuffers(0, 1, &vbView);
@@ -583,7 +590,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		commandList->SetGraphicsRootConstantBufferView(0, constBuffMaterial->GetGPUVirtualAddress());
 
 		// 描画コマンド
-		commandList->DrawInstanced(_countof(vertices), 1, 0, 0); // 全ての頂点を使って描画
+		commandList->DrawInstanced(6, 1, 0, 0); // 全ての頂点を使って描画
 
 		// ４.描画コマンドここまで
 #pragma endregion
