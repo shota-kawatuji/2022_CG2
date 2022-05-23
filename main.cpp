@@ -573,7 +573,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		if (key[DIK_0]) {
 			OutputDebugStringA("Hit 0\n"); // 出力ウィンドウに「Hit 0」と表示
 		}
-		
+
 		// バックバッファの番号を取得
 		UINT bbIndex = swapChain->GetCurrentBackBufferIndex();
 
