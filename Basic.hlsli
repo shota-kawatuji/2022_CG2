@@ -1,6 +1,7 @@
 // マテリアル
 cbuffer ConstBufferDataMaterial : register(b0)
 {
+	// 色(RGBA)
 	float4 color;
 };
 
