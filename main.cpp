@@ -260,10 +260,10 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	// 頂点データ
 	Vertex vertices[] = {
 		// x	  y		  z		 u	   v
-		{{  0.0f, 100.0f, 0.0f},{0.0f, 1.0f}}, // 左下
-		{{  0.0f,   0.0f, 0.0f},{0.0f, 0.0f}}, // 左上
-		{{100.0f, 100.0f, 0.0f},{1.0f, 1.0f}}, // 右下
-		{{100.0f,   0.0f, 0.0f},{1.0f, 0.0f}}, // 右上
+		{{-50.0f, -50.0f, 50.0f},{0.0f, 1.0f}}, // 左下
+		{{-50.0f,  50.0f, 50.0f},{0.0f, 0.0f}}, // 左上
+		{{ 50.0f, -50.0f, 50.0f},{1.0f, 1.0f}}, // 右下
+		{{ 50.0f,  50.0f, 50.0f},{1.0f, 0.0f}}, // 右上
 	};
 	// インデックスデータ
 	unsigned short indices[] = {
@@ -328,11 +328,24 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		assert(SUCCEEDED(result));
 		// 単位行列を代入
 		constMapTransform->mat = XMMatrixIdentity();
-		constMapTransform->mat.r[0].m128_f32[0] = 2.0f / window_width;
-		constMapTransform->mat.r[1].m128_f32[1] = -2.0f / window_height;
-		constMapTransform->mat.r[3].m128_f32[0] = -1.0f;
-		constMapTransform->mat.r[3].m128_f32[1] = 1.0f;
+		XMMATRIX matProjection = XMMatrixPerspectiveFovLH(
+			XMConvertToRadians(90.0f),
+			(float)window_width / window_height,
+			0.1f, 1000.0f);
+
+		// 定数バッファに転送
+		constMapTransform->mat = matProjection;
+		//constMapTransform->mat.r[0].m128_f32[0] = 2.0f / window_width;
+		//constMapTransform->mat.r[1].m128_f32[1] = -2.0f / window_height;
+		//constMapTransform->mat.r[3].m128_f32[0] = -1.0f;
+		//constMapTransform->mat.r[3].m128_f32[1] = 1.0f;
+		//constMapTransform->mat = XMMatrixOrthographicOffCenterLH(
+		//	2.0f / window_width,/*左端*/ -2.0f / window_height,/*右端*/
+		//	-1.0f,/*下端*/ 1.0f,/*上端*/
+		//	0.0f,/*前端*/ 1.0f/*奥端*/);
+		// 透視投影行列の計算
 	}
+
 
 	// GPU上のバッファに対応した仮想メモリ(メインメモリ)を取得
 	Vertex* vertMap = nullptr;
@@ -799,6 +812,8 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		D3D12_GPU_DESCRIPTOR_HANDLE srvGpuHandle = srvHeap->GetGPUDescriptorHandleForHeapStart();
 		// SRVヒープの先頭にあるSRVをルートパラメータ1番に設定
 		commandList->SetGraphicsRootDescriptorTable(1, srvGpuHandle);
+		// 定数バッファビュー(CBV)の設定コマンド
+		commandList->SetGraphicsRootConstantBufferView(2, constBufferTransform->GetGPUVirtualAddress());
 
 		// プリミティブ形状の設定コマンド
 		//commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_POINTLIST); // 点のリスト
