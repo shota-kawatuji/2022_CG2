@@ -188,7 +188,6 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		(IDXGISwapChain1**)&swapChain);
 	assert(SUCCEEDED(result));
 
-
 	// デスクリプタヒープの設定
 	D3D12_DESCRIPTOR_HEAP_DESC rtvHreapDesc{};
 	rtvHreapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV; // レンダーターゲットビュー
@@ -247,6 +246,14 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	result = keyboard->SetCooperativeLevel(
 		hwnd, DISCL_FOREGROUND | DISCL_NONEXCLUSIVE | DISCL_NOWINKEY);
 	assert(SUCCEEDED(result));
+
+#pragma region 初期化
+	float angle = 0.0f; // カメラの回転角
+	XMFLOAT3 scale = { 1.0f,1.0f,1.0f };
+	XMFLOAT3 rotation = { 10.0f,1.0f,1.0f };
+	XMFLOAT3 position = { 0.0f,0.0f,0.0f };
+
+#pragma endregion
 	// DirectX初期化処理 ここまで
 #pragma endregion
 #pragma region 描画初期化処理
@@ -696,8 +703,6 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 			break;
 		}
 
-		float angle = 0.0f; // カメラの回転角
-
 #pragma endregion
 #pragma region DirectX毎フレーム処理
 		//  DirectX毎フレーム処理ここから
@@ -724,6 +729,33 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		}
 		// 行列の合成
 		constMapTransform->mat = matView * matProjection;
+
+		if (key[DIK_UP] || key[DIK_DOWN] || key[DIK_RIGHT] || key[DIK_LEFT]) {
+			if (key[DIK_UP]) { position.z += 1.0f; }
+			else if (key[DIK_DOWN]) { position.z -= 1.0f; }
+			if (key[DIK_RIGHT]) { position.x += 1.0f; }
+			else if (key[DIK_LEFT]) { position.x -= 1.0f; }
+		}
+		// ワールド変換行列
+		XMMATRIX matWorld;
+
+		XMMATRIX matScale; // スケーリング行列
+		matScale = XMMatrixScaling(scale.x, scale.y, scale.z);
+
+		XMMATRIX matRot; // 回転行列
+		matRot = XMMatrixIdentity();
+		matRot *= XMMatrixRotationZ(rotation.z);
+		matRot *= XMMatrixRotationX(rotation.x);
+		matRot *= XMMatrixRotationY(rotation.y);
+
+		XMMATRIX matTrans; // 平行移動行列
+		matTrans = XMMatrixTranslation(position.x, position.y, position.z);
+
+		matWorld = XMMatrixIdentity();
+		matWorld *= matScale;
+		matWorld *= matRot;
+		matWorld *= matTrans;
+		constMapTransform->mat = matWorld * matView * matProjection;
 
 		// バックバッファの番号を取得
 		UINT bbIndex = swapChain->GetCurrentBackBufferIndex();
